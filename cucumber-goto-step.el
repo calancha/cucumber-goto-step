@@ -80,6 +80,11 @@
   :type    '(repeat string)
   :group   'cucumber-goto-step)
 
+(defcustom cgs-gherkin-keywords '(And When Then Given)
+  "List of supported Gherkin keywords."
+  :type 'string
+  :group 'cucumber-goto-step)
+
 (defcustom cgs-step-search-path "/features/**/*_steps.rb"
   "The file glob that is used to search for cucumber steps.  Defaults to /features/**/*_steps.rb."
   :type 'string
@@ -128,9 +133,11 @@
   (condition-case ex
       (progn
         (goto-char from)
-        (let* ((end   (re-search-forward "\\(Given\\|When\\|Then\\|And\\).+/.*/" (point-max)))
+        (let* ((end   (re-search-forward
+                       (eval `(rx (group (or ,@(mapcar #'symbol-name cgs-gherkin-keywords))) (+ anything) ?/ (* anything) ?/))
+                       (point-max)))
                (start (progn
-                        (re-search-backward "\\(Given\\|When\\|Then\\|And\\)")
+                        (re-search-backward (eval `(rx (group (or ,@(mapcar #'symbol-name cgs-gherkin-keywords))))))
                         (re-search-forward "/")))
                (match (buffer-substring-no-properties start (- end 1)) )
                (match (replace-regexp-in-string "\\\\" "\\" match nil 't nil)))
@@ -190,7 +197,7 @@ If no root marker is found, the current working directory is used."
         (let* ((from      (save-excursion (beginning-of-line) (point)))
                (to        (save-excursion (end-of-line) (point)))
                (line-text (cgs-chomp (buffer-substring-no-properties from to)))
-               (match     (string-match "^\\(And \\|When \\|Then \\|Given \\)" line-text))
+               (match     (string-match (eval `(rx  bol (group (or ,@(mapcar #'symbol-name cgs-gherkin-keywords)) ?\s ))) line-text))
                (step-text (cgs-chomp (replace-match "" t t line-text))))
           (if match
               (dolist (f (file-expand-wildcards (concat dir cgs-step-search-path)))
