@@ -80,6 +80,10 @@
   :type    '(repeat string)
   :group   'cucumber-goto-step)
 
+(defvar-local cgs-cache-def-positions nil
+  "File lines of previously visited definitions.
+It is a list of elements (STEP (FULLNAME LINE)).")
+
 (defcustom cgs-gherkin-keywords '(And When Then Given)
   "List of supported Gherkin keywords."
   :type 'string
@@ -187,27 +191,34 @@ If no root marker is found, the current working directory is used."
      ((equal system-root-dir this-dir) nil)
      (t (cgs-find-root parent-dir root-markers)))))
 
+(defun cgs-visit-definition (file line)
+  (find-file file)
+  (goto-char (point-min)) (forward-line (1- line))
+  (recenter))
+
 ;;;###autoload
 (defun jump-to-cucumber-step ()
   "Jumps to a step definition."
   (interactive)
 
   (let ((dir (run-hook-with-args-until-success 'cgs-find-project-functions)))
-    (if dir
-        (let* ((from      (save-excursion (beginning-of-line) (point)))
-               (to        (save-excursion (end-of-line) (point)))
-               (line-text (cgs-chomp (buffer-substring-no-properties from to)))
-               (match     (string-match (eval `(rx  bol (group (or ,@(mapcar #'symbol-name cgs-gherkin-keywords)) ?\s ))) line-text))
-               (step-text (cgs-chomp (replace-match "" t t line-text))))
-          (if match
-              (dolist (f (file-expand-wildcards (concat dir cgs-step-search-path)))
-                (let* ((matched-line (cgs-match-in-file f step-text)))
-                  (if matched-line
-                      (progn
-                        (find-file f)
-                        (goto-char (point-min)) (forward-line (1- matched-line))
-                        (recenter)
-                        )))))))))
+    (when dir
+      (let* ((from      (save-excursion (beginning-of-line) (point)))
+             (to        (save-excursion (end-of-line) (point)))
+             (line-text (cgs-chomp (buffer-substring-no-properties from to)))
+             (match     (string-match (eval `(rx  bol (group (or ,@(mapcar #'symbol-name cgs-gherkin-keywords)) ?\s ))) line-text))
+             (step-text (cgs-chomp (replace-match "" t t line-text))))
+        (when match
+          (catch '--found-def
+            (dolist (f (file-expand-wildcards (concat dir cgs-step-search-path)))
+              (when (assoc line-text cgs-cache-def-positions)
+                (apply #'cgs-visit-definition (cdr (assoc f cgs-cache-def-positions)))
+                (throw '--found-def nil))
+              (let* ((matched-line (cgs-match-in-file f step-text)))
+                (when matched-line
+                  (push (cons line-text (list f matched-line)) cgs-cache-def-positions)
+                  (cgs-visit-definition f matched-line)
+                  (throw '--found-def nil))))))))))
 
 (provide 'cucumber-goto-step)
 ;;; cucumber-goto-step.el ends here
