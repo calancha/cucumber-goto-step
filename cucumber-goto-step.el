@@ -122,7 +122,7 @@ It is a list of elements (STEP (FULLNAME LINE)).")
   :group 'cucumber-goto-step)
 
 (defun cgs-next-line-pos ()
-  (forward-line)
+  (forward-line 1)
   (point))
 
 (defun cgs-match (text step)
@@ -151,9 +151,12 @@ It is a list of elements (STEP (FULLNAME LINE)).")
     found-line))
 
 (defun cgs-match-in-file (file-path step)
-  (with-temp-buffer
-    (insert-file-contents file-path)
-    (cgs-loop-through-file step 1)))
+  (if-let ((buffer (find-buffer-visiting file-path)))
+      (with-current-buffer buffer
+        (cgs-loop-through-file step 1))
+    (with-temp-buffer
+      (insert-file-contents file-path)
+      (cgs-loop-through-file step 1))))
 
 (defun cgs-find-step (from)
   (condition-case ex
