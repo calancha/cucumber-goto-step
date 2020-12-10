@@ -241,18 +241,17 @@ Interactively with a prefix, ignore the cached values."
              (line-text (cgs-chomp (buffer-substring-no-properties from to)))
              (regexp (format "^\\(%s\\)" (substring (mapconcat #'identity (mapcar (lambda (sym) (concat (symbol-name sym) " \\|")) cgs-gherkin-keywords) "") 0 -2)))
              (match     (string-match regexp line-text))
-             (step-text (cgs-chomp (replace-match "" t t line-text))))
+             (step-text (and match (cgs-chomp (replace-match "" t t line-text)))))
         (when match
-          (let ((matched-data
-                 (catch '--found-def
-                   (dolist-with-progress-reporter (file (file-expand-wildcards (expand-file-name cgs-step-search-path dir))) "Searching step definition..."
-                     (when (and (not ignore-cache) (assoc step-text cgs-cache-def-positions))
-                       (throw '--found-def (cdr (assoc step-text cgs-cache-def-positions))))
-                     (let* ((matched-line (cgs-match-in-file file step-text)))
-                       (when matched-line
-                         (push (list step-text file matched-line) cgs-cache-def-positions)
-                         (throw '--found-def (cdr (assoc step-text cgs-cache-def-positions)))))))))
-            (if matched-data
+          (if-let ((matched-data (and (not ignore-cache) (cdr-safe (assoc step-text cgs-cache-def-positions)))))
+              (apply #'cgs-visit-definition matched-data)
+            (if-let ((matched-data
+                        (catch '--found-def
+                          (dolist-with-progress-reporter (file (file-expand-wildcards (expand-file-name cgs-step-search-path dir))) "Searching step definition..."
+                            (let* ((matched-line (cgs-match-in-file file step-text)))
+                              (when matched-line
+                                (push (list step-text file matched-line) cgs-cache-def-positions)
+                                (throw '--found-def (cdr (assoc step-text cgs-cache-def-positions)))))))))
                 (apply #'cgs-visit-definition matched-data)
               (user-error "No match found for this step"))))))))
 
