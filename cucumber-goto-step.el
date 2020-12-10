@@ -213,16 +213,21 @@ If no root marker is found, the current working directory is used."
         (when match
           (let ((matched-data
                  (catch '--found-def
-                   (dolist (file (file-expand-wildcards (expand-file-name cgs-step-search-path dir)))
+                   (dolist-with-progress-reporter (file (file-expand-wildcards (expand-file-name cgs-step-search-path dir))) "Searching step definition..."
                      (when (assoc step-text cgs-cache-def-positions)
-                       (throw '--found-def (cdr (assoc file cgs-cache-def-positions))))
+                       (apply #'cgs-visit-definition (cdr (assoc step-text cgs-cache-def-positions)))
+                       ;; (throw '--found-def (cdr (assoc step-text cgs-cache-def-positions)))
+                       )
                      (let* ((matched-line (cgs-match-in-file file step-text)))
                        (when matched-line
                          (push (list step-text file matched-line) cgs-cache-def-positions)
-                         (throw '--found-def (cdr (assoc step-text cgs-cache-def-positions)))))))))
-            (if matched-data
-                (apply #'cgs-visit-definition matched-data)
-              (user-error "No match found for this step"))))))))
+                         (apply #'cgs-visit-definition (cdr (assoc step-text cgs-cache-def-positions)))
+                         ;; (throw '--found-def (cdr (assoc step-text cgs-cache-def-positions)))
+))))))))))))
+            ;; (user-error matched-data)
+            ;; (if matched-data
+            ;;     (apply #'cgs-visit-definition matched-data)
+            ;;   (user-error "No match found for this step"))))))))
 
       (provide 'cucumber-goto-step)
 ;;; cucumber-goto-step.el ends here
