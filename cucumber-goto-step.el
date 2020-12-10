@@ -211,20 +211,18 @@ If no root marker is found, the current working directory is used."
              (match     (string-match regexp line-text))
              (step-text (cgs-chomp (replace-match "" t t line-text))))
         (when match
-          (catch '--found-def
-            (dolist (file (file-expand-wildcards (expand-file-name cgs-step-search-path dir)))
-              ;; (message "Trying to match at file %s" file)
-              ;; (sit-for 0.2)
-              (when (assoc line-text cgs-cache-def-positions)
-                (apply #'cgs-visit-definition (cdr (assoc file cgs-cache-def-positions)))
-                (throw '--found-def nil))
-              (let* ((matched-line (cgs-match-in-file file step-text)))
-                (when matched-line
-                  ;; (message "We have a match %s file %s" step-text file)
-                  ;; (sit-for 1)
-                  (push (list step-text file matched-line) cgs-cache-def-positions)
-                  (cgs-visit-definition file matched-line)
-                  (throw '--found-def nil))))))))))
+          (let ((matched-data
+                 (catch '--found-def
+                   (dolist (file (file-expand-wildcards (expand-file-name cgs-step-search-path dir)))
+                     (when (assoc step-text cgs-cache-def-positions)
+                       (throw '--found-def (cdr (assoc file cgs-cache-def-positions))))
+                     (let* ((matched-line (cgs-match-in-file file step-text)))
+                       (when matched-line
+                         (push (list step-text file matched-line) cgs-cache-def-positions)
+                         (throw '--found-def (cdr (assoc step-text cgs-cache-def-positions)))))))))
+            (if matched-data
+                (apply #'cgs-visit-definition matched-data)
+              (user-error "No match found for this step"))))))))
 
-(provide 'cucumber-goto-step)
+      (provide 'cucumber-goto-step)
 ;;; cucumber-goto-step.el ends here
