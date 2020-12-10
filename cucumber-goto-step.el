@@ -222,7 +222,8 @@ If no root marker is found, the current working directory is used."
       (find-file-read-only file)
     (find-file file))
   (goto-char (point-min)) (forward-line (1- line))
-  (recenter))
+  (recenter)
+  (message "Found step definition"))
 
 ;;;###autoload
 (defun jump-to-cucumber-step (&optional ignore-cache)
