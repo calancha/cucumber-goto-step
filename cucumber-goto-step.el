@@ -80,6 +80,11 @@
   :type    '(repeat string)
   :group   'cucumber-goto-step)
 
+(defcustom cgs-visit-in-read-only nil
+  "If non-nil then visit the file with the step definition in read only."
+  :type 'boolean
+  :group 'cucumber-goto-step)
+
 (defcustom cgs-regexp-anchor-left "(/\\^"
   "Regexp matching the beginning of a step definition (right after the Gherkin word).
 For instance, in this step definition
@@ -213,7 +218,9 @@ If no root marker is found, the current working directory is used."
      (t (cgs-find-root parent-dir root-markers)))))
 
 (defun cgs-visit-definition (file line)
-  (find-file file)
+  (if cgs-visit-in-read-only
+      (find-file-read-only file)
+    (find-file file))
   (goto-char (point-min)) (forward-line (1- line))
   (recenter))
 
