@@ -210,14 +210,18 @@ If no root marker is found, the current working directory is used."
              (step-text (cgs-chomp (replace-match "" t t line-text))))
         (when match
           (catch '--found-def
-            (dolist (f (file-expand-wildcards (concat dir cgs-step-search-path)))
+            (dolist (file (file-expand-wildcards (expand-file-name cgs-step-search-path dir)))
+              (message "Trying to match at file %s" file)
+              (sit-for 0.2)
               (when (assoc line-text cgs-cache-def-positions)
-                (apply #'cgs-visit-definition (cdr (assoc f cgs-cache-def-positions)))
+                (apply #'cgs-visit-definition (cdr (assoc file cgs-cache-def-positions)))
                 (throw '--found-def nil))
-              (let* ((matched-line (cgs-match-in-file f step-text)))
+              (let* ((matched-line (cgs-match-in-file file step-text)))
                 (when matched-line
-                  (push (cons line-text (list f matched-line)) cgs-cache-def-positions)
-                  (cgs-visit-definition f matched-line)
+                  (message "We have a match %s file %s" line-text file)
+                  (sit-for 1)
+                  (push (list line-text file matched-line) cgs-cache-def-positions)
+                  (cgs-visit-definition file matched-line)
                   (throw '--found-def nil))))))))))
 
 (provide 'cucumber-goto-step)
