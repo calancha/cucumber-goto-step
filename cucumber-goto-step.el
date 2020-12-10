@@ -137,11 +137,12 @@ It is a list of elements (STEP (FULLNAME LINE)).")
   (condition-case ex
       (progn
         (goto-char from)
-        (let* ((end   (re-search-forward
-                       (eval `(rx (group (or ,@(mapcar #'symbol-name cgs-gherkin-keywords))) (+ anything) ?/ (* anything) ?/))
+        (let* ((gherkin-regexp (format "\\(%s\\)" (substring (mapconcat #'identity (mapcar (lambda (sym) (concat (symbol-name sym) "\\|")) cgs-gherkin-keywords) "") 0 -2)))
+               (end   (re-search-forward
+                       (format "%s.+/.*/" gherkin-regexp)
                        (point-max)))
                (start (progn
-                        (re-search-backward (eval `(rx (group (or ,@(mapcar #'symbol-name cgs-gherkin-keywords))))))
+                        (re-search-backward gherkin-regexp)
                         (re-search-forward "/")))
                (match (buffer-substring-no-properties start (- end 1)) )
                (match (replace-regexp-in-string "\\\\" "\\" match nil 't nil)))
@@ -206,21 +207,22 @@ If no root marker is found, the current working directory is used."
       (let* ((from      (save-excursion (beginning-of-line) (point)))
              (to        (save-excursion (end-of-line) (point)))
              (line-text (cgs-chomp (buffer-substring-no-properties from to)))
-             (match     (string-match (eval `(rx  bol (group (or ,@(mapcar #'symbol-name cgs-gherkin-keywords)) ?\s ))) line-text))
+             (regexp (format "^\\(%s\\)" (substring (mapconcat #'identity (mapcar (lambda (sym) (concat (symbol-name sym) " \\|")) cgs-gherkin-keywords) "") 0 -2)))
+             (match     (string-match regexp line-text))
              (step-text (cgs-chomp (replace-match "" t t line-text))))
         (when match
           (catch '--found-def
             (dolist (file (file-expand-wildcards (expand-file-name cgs-step-search-path dir)))
-              (message "Trying to match at file %s" file)
-              (sit-for 0.2)
+              ;; (message "Trying to match at file %s" file)
+              ;; (sit-for 0.2)
               (when (assoc line-text cgs-cache-def-positions)
                 (apply #'cgs-visit-definition (cdr (assoc file cgs-cache-def-positions)))
                 (throw '--found-def nil))
               (let* ((matched-line (cgs-match-in-file file step-text)))
                 (when matched-line
-                  (message "We have a match %s file %s" line-text file)
-                  (sit-for 1)
-                  (push (list line-text file matched-line) cgs-cache-def-positions)
+                  ;; (message "We have a match %s file %s" step-text file)
+                  ;; (sit-for 1)
+                  (push (list step-text file matched-line) cgs-cache-def-positions)
                   (cgs-visit-definition file matched-line)
                   (throw '--found-def nil))))))))))
 
