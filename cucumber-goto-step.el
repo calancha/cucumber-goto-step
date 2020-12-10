@@ -221,9 +221,10 @@ If no root marker is found, the current working directory is used."
 ;; TODO: write a backend for xref.  
 (defun cgs-visit-definition (file line)
   (xref-push-marker-stack)
-  (if cgs-visit-in-read-only
-      (find-file-read-only file)
+  (if-let ((buffer (find-buffer-visiting file)))
+        (pop-to-buffer buffer)
     (find-file file))
+  (when cgs-visit-in-read-only (read-only-mode))
   (goto-char (point-min)) (forward-line (1- line))
   (recenter)
   (message "Found step definition"))
