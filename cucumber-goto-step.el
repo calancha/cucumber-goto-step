@@ -164,7 +164,7 @@ It is a list of elements (STEP (FULLNAME LINE)).")
                                        cgs-regexp-anchor-left))
                (end   (progn
                         (re-search-forward
-                         (format "%s.+/.*" gherkin-regexp cgs-regexp-anchor-right)
+                         (format "%s.+/.*%s" gherkin-regexp cgs-regexp-anchor-right)
                          (point-max))
                         (re-search-backward cgs-regexp-anchor-right))) ; drop anchor
                (start (progn
