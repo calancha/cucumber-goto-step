@@ -80,6 +80,22 @@
   :type    '(repeat string)
   :group   'cucumber-goto-step)
 
+(defcustom cgs-regexp-anchor-left "(/\\^"
+  "Regexp matching the beginning of a step definition (right after the Gherkin word).
+For instance, in this step definition
+Given(/^I do something$)
+we would match the string `(/^'."
+  :type 'string
+  :group 'cucumber-goto-step)
+
+(defcustom cgs-regexp-anchor-right "\\$/)"
+  "Regexp matching the end of a step definition.
+For instance, in this step definition
+Given(/^I do something$/)
+we would match the string `$/)'."
+  :type 'string
+  :group 'cucumber-goto-step)
+
 (defvar-local cgs-cache-def-positions nil
   "File lines of previously visited definitions.
 It is a list of elements (STEP (FULLNAME LINE)).")
@@ -137,14 +153,18 @@ It is a list of elements (STEP (FULLNAME LINE)).")
   (condition-case ex
       (progn
         (goto-char from)
-        (let* ((gherkin-regexp (format "\\(%s\\)" (substring (mapconcat #'identity (mapcar (lambda (sym) (concat (symbol-name sym) "\\|")) cgs-gherkin-keywords) "") 0 -2)))
-               (end   (re-search-forward
-                       (format "%s.+/.*/" gherkin-regexp)
-                       (point-max)))
+        (let* ((gherkin-regexp (format "\\(%s\\)%s"
+                                       (substring (mapconcat #'identity (mapcar (lambda (sym) (concat (symbol-name sym) "\\|")) cgs-gherkin-keywords) "") 0 -2)
+                                       cgs-regexp-anchor-left))
+               (end   (progn
+                        (re-search-forward
+                         (format "%s.+/.*" gherkin-regexp cgs-regexp-anchor-right)
+                         (point-max))
+                        (re-search-backward cgs-regexp-anchor-right))) ; drop anchor
                (start (progn
-                        (re-search-backward gherkin-regexp)
-                        (re-search-forward "/")))
-               (match (buffer-substring-no-properties start (- end 1)) )
+                        (re-search-backward cgs-regexp-anchor-left)
+                        (re-search-forward cgs-regexp-anchor-left))) ; drop anchor
+               (match (buffer-substring-no-properties start end))
                (match (replace-regexp-in-string "\\\\" "\\" match nil 't nil)))
           (cons match start)))
     ('error nil)))
