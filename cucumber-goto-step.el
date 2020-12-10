@@ -66,6 +66,7 @@
 
 ;;; Code:
 (require 'pcre2el)
+(require 'xref)
 
 (defgroup cucumber-goto-step nil
   "Automatically find an open the cucumber step on the current line."
@@ -217,7 +218,9 @@ If no root marker is found, the current working directory is used."
      ((equal system-root-dir this-dir) nil)
      (t (cgs-find-root parent-dir root-markers)))))
 
+;; TODO: write a backend for xref.  
 (defun cgs-visit-definition (file line)
+  (xref-push-marker-stack)
   (if cgs-visit-in-read-only
       (find-file-read-only file)
     (find-file file))
