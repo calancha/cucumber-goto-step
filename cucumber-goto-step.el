@@ -218,9 +218,10 @@ If no root marker is found, the current working directory is used."
   (recenter))
 
 ;;;###autoload
-(defun jump-to-cucumber-step ()
-  "Jumps to a step definition."
-  (interactive)
+(defun jump-to-cucumber-step (&optional ignore-cache)
+  "Jumps to a step definition.
+Interactively with a prefix, ignore the cached values."
+  (interactive "P")
 
   (let ((dir (run-hook-with-args-until-success 'cgs-find-project-functions)))
     (when dir
@@ -234,7 +235,7 @@ If no root marker is found, the current working directory is used."
           (let ((matched-data
                  (catch '--found-def
                    (dolist-with-progress-reporter (file (file-expand-wildcards (expand-file-name cgs-step-search-path dir))) "Searching step definition..."
-                     (when (assoc step-text cgs-cache-def-positions)
+                     (when (and (not ignore-cache) (assoc step-text cgs-cache-def-positions))
                        (throw '--found-def (cdr (assoc step-text cgs-cache-def-positions))))
                      (let* ((matched-line (cgs-match-in-file file step-text)))
                        (when matched-line
